@@ -33,3 +33,17 @@ export type ListingPhoto = {
   url: string;
   sort_order: number;
 };
+
+export type ListingAvailability = {
+  id: string;
+  listing_id: string;
+  start_date: string;
+  end_date: string;
+};
+
+export type Profile = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  is_premium: boolean;
+};

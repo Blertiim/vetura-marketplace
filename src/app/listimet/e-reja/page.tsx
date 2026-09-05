@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { NewListingForm } from "@/components/new-listing-form";
+import type { City, Country } from "@/lib/types";
 
 export default async function NewListingPage() {
   const supabase = createClient();
@@ -11,15 +13,20 @@ export default async function NewListingPage() {
     redirect("/hyr");
   }
 
+  const [{ data: countries }, { data: cities }] = await Promise.all([
+    supabase.from("countries").select("*").order("name"),
+    supabase.from("cities").select("*").order("name"),
+  ]);
+
   return (
-    <div className="mx-auto max-w-lg rounded-xl border border-dashed border-slate-300 p-8 text-center">
-      <h1 className="mb-2 text-xl font-semibold text-slate-900">
-        Formulari i postimit â n&apos;rrugë 🚧
+    <div>
+      <h1 className="mb-6 text-xl font-semibold text-slate-900">
+        Posto veturën tënde
       </h1>
-      <p className="text-slate-500">
-        Je i loguem si <strong>{user.email}</strong>. Formulari për postim vetur
-        (foto, çmim, qytet, kalendar) âsht hapi tjetër që po e ndërtojmë.
-      </p>
+      <NewListingForm
+        countries={(countries as Country[]) ?? []}
+        cities={(cities as City[]) ?? []}
+      />
     </div>
   );
 }
