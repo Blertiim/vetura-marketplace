@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import { useI18n } from "@/components/i18n-provider";
 
 export function PhotoGallery({
   photos,
@@ -10,35 +12,39 @@ export function PhotoGallery({
   title: string;
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const { dict } = useI18n();
 
   if (photos.length === 0) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-xl bg-slate-100 text-slate-400">
-        Pa foto
+      <div className="flex aspect-[4/3] items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+        {dict.listing.paFoto}
       </div>
     );
   }
 
   return (
     <div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={photos[activeIndex].url}
-        alt={title}
-        className="aspect-[4/3] w-full rounded-xl object-cover"
-      />
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+        <Image
+          src={photos[activeIndex].url}
+          alt={title}
+          fill
+          priority
+          sizes="(max-width: 768px) 100vw, 700px"
+          className="object-cover"
+        />
+      </div>
       {photos.length > 1 && (
         <div className="mt-2 flex gap-2 overflow-x-auto">
           {photos.map((photo, i) => (
             <button
               key={photo.id}
               onClick={() => setActiveIndex(i)}
-              className={`h-16 w-20 flex-shrink-0 overflow-hidden rounded-md border-2 ${
+              className={`relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-md border-2 ${
                 i === activeIndex ? "border-brand-500" : "border-transparent"
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.url} alt="" className="h-full w-full object-cover" />
+              <Image src={photo.url} alt="" fill sizes="80px" className="object-cover" />
             </button>
           ))}
         </div>
