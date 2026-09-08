@@ -3,9 +3,24 @@ import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import { ListingFilters } from "@/components/listing-filters";
 import { ListingCard } from "@/components/listing-card";
 import { SponsorSlot } from "@/components/sponsor-slot";
+import { SponsorCard } from "@/components/sponsor-card";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
-import type { City, Country, ListingSummary } from "@/lib/types";
+import type { City, Country, ListingSummary, Sponsor } from "@/lib/types";
+
+// Sa listime duhet me pas mes dy kartelave sponsori, kur ka ma shumë se
+// nji sponsor aktiv (kështu, edhe faqet e mëdha marrin disa "sponsor slots").
+const LISTINGS_BETWEEN_SPONSORS = 8;
+
+/** Rendit array-in random — për rotacion t'sponsorëve n'çdo hapje t'faqes. */
+function shuffled<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +114,7 @@ export default async function HomePage({
   // Fotot dhe pronarët s'varen njani prej tjetrit — i marrim n'paralel
   // (Promise.all) n'vend se njani pas tjetrit, kështu faqja pret vetëm
   // për ma t'ngadaltën prej dyjave, jo për shumën e kohës s'dyjave.
-  const [{ data: photos }, { data: owners }] = await Promise.all([
+  const [{ data: photos }, { data: owners }, { data: sponsors }] = await Promise.all([
     listingIds.length
       ? supabase
           .from("listing_photos")
@@ -112,7 +127,12 @@ export default async function HomePage({
       : Promise.resolve({
           data: [] as { id: string; full_name: string | null; avatar_url: string | null }[],
         }),
+    supabase.from("sponsors").select("*").order("sort_order", { ascending: true }),
   ]);
+
+  // Rendit sponsorët aktiv random — kështu ndryshon renditja/kush shfaqet
+  // n'çdo hapje t'faqes ("rotacion").
+  const activeSponsors = shuffled((sponsors ?? []) as Sponsor[]);
 
   const coverByListing = new Map<string, string>();
   for (const photo of photos ?? []) {
@@ -159,9 +179,34 @@ export default async function HomePage({
                 ownerAvatarUrl={owner(listing)?.avatar_url ?? null}
               />
             ));
-            // Fut hapësirën e sponsorit si "kartelë" brenda grid-it — pas
-            // 2 listimeve t'para (ose n'fund, nëse ka ma pak se 2).
-            cards.splice(Math.min(2, cards.length), 0, <SponsorSlot key="sponsor" />);
+            // Fut hapësira sponsorësh si "kartela" brenda grid-it — nji pas
+            // 2 listimeve t'para, e pastaj nji tjetër çdo
+            // LISTINGS_BETWEEN_SPONSORS listime (nëse ka mjaftueshëm).
+            // Kur ka sponsorë real n'DB, i rrotullon mes tyne (nji kartelë
+            // t'ndryshme n'secilën pozitë); n'mungesë t'sponsorëve,
+            // shfaqet kartela statike "bahu sponsor".
+            const positions = [Math.min(2, cards.length)];
+            for (let p = positions[0] + LISTINGS_BETWEEN_SPONSORS; p < cards.length; p += LISTINGS_BETWEEN_SPONSORS) {
+              positions.push(p);
+            }
+            positions
+              .slice()
+              .reverse()
+              .forEach((pos, idxFromEnd) => {
+                const slotIndex = positions.length - 1 - idxFromEnd;
+                const sponsor = activeSponsors.length
+                  ? activeSponsors[slotIndex % activeSponsors.length]
+                  : null;
+                cards.splice(
+                  pos,
+                  0,
+                  sponsor ? (
+                    <SponsorCard key={`sponsor-${pos}`} sponsor={sponsor} />
+                  ) : (
+                    <SponsorSlot key={`sponsor-${pos}`} />
+                  )
+                );
+              });
             return cards;
           })()}
         </div>

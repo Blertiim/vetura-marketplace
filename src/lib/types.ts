@@ -96,3 +96,18 @@ export type Profile = {
   avatar_url: string | null;
   is_premium: boolean;
 };
+
+export type Sponsor = {
+  id: string;
+  name: string;
+  badge_text: string;
+  heading: string;
+  subtext: string | null;
+  cta_text: string;
+  link_url: string;
+  active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  sort_order: number;
+  created_at: string;
+};
